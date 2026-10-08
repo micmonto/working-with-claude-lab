@@ -1,6 +1,6 @@
 const { requireApp } = require('./setup/loadApp');
 
-const { formatRate, formatMoney, barWidths, applyPreset, daysUntil } = requireApp();
+const { formatRate, formatMoney, barWidths, applyPreset, daysUntil, resolveTheme, nextTheme } = requireApp();
 
 describe('formatRate', () => {
   test('renders a ratio as a percentage with one decimal', () => {
@@ -69,5 +69,32 @@ describe('daysUntil', () => {
 
   test('is negative for a date that has passed', () => {
     expect(daysUntil('2026-09-01', '2026-09-21')).toBe(-20);
+  });
+});
+
+describe('resolveTheme', () => {
+  test('keeps a stored dark or light choice', () => {
+    expect(resolveTheme('dark')).toBe('dark');
+    expect(resolveTheme('light')).toBe('light');
+  });
+
+  test('falls back to light when nothing is stored', () => {
+    expect(resolveTheme(null)).toBe('light');
+    expect(resolveTheme(undefined)).toBe('light');
+  });
+
+  test('falls back to light for a value it does not know', () => {
+    expect(resolveTheme('purple')).toBe('light');
+    expect(resolveTheme('')).toBe('light');
+  });
+});
+
+describe('nextTheme', () => {
+  test('light switches to dark', () => {
+    expect(nextTheme('light')).toBe('dark');
+  });
+
+  test('dark switches to light', () => {
+    expect(nextTheme('dark')).toBe('light');
   });
 });

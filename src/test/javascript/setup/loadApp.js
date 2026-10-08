@@ -14,6 +14,7 @@ const path = require('path');
 const STATIC_DIR = path.resolve(__dirname, '../../../main/resources/static');
 const APP_PATH = path.join(STATIC_DIR, 'app.js');
 const HTML_PATH = path.join(STATIC_DIR, 'index.html');
+const CSS_PATH = path.join(STATIC_DIR, 'style.css');
 
 const REGISTERED_IDS = [
   'app-header',
@@ -26,6 +27,7 @@ const REGISTERED_IDS = [
   'preset-7',
   'preset-30',
   'preset-90',
+  'theme-toggle',
   'status-line',
   'kpis',
   'kpi-on-time',
@@ -157,6 +159,7 @@ function createFakeApi(overrides) {
 /**
  * Load the page and start the app against a fake API. `overrides` replaces any of the
  * fixtures by name (health, kpis, onTime, late, ticketsByCategory, vendors, failing).
+ * `overrides.storage` replaces localStorage for the theme choice.
  * Returns { app, api, document, module } once the initial load has finished.
  */
 async function loadApp(overrides) {
@@ -169,7 +172,7 @@ async function loadApp(overrides) {
 
   jest.resetModules();
   const mod = require(APP_PATH);
-  const app = mod.initApp(document, api.fetchImpl);
+  const app = mod.initApp(document, api.fetchImpl, overrides && overrides.storage);
   await app.ready;
   return { app, api, document, module: mod };
 }
@@ -189,5 +192,6 @@ module.exports = {
   readIndexHtml,
   extractIds,
   APP_PATH,
-  HTML_PATH
+  HTML_PATH,
+  CSS_PATH
 };

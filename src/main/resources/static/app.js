@@ -12,6 +12,8 @@
   var API = '/api';
   var DEFAULT_PRESET_DAYS = 30;
   var LATE_LIMIT = 20;
+  var THEME_KEY = 'ops-dashboard.theme';
+  var DEFAULT_THEME = 'light';
   var SVG_NS = 'http://www.w3.org/2000/svg';
 
   // ---------- API client ----------
@@ -102,13 +104,33 @@
     return Math.round((parseIso(iso) - parseIso(today)) / 86400000);
   }
 
+  /** The theme to start with: the stored choice if it is one we know, otherwise light. */
+  function resolveTheme(stored) {
+    return stored === 'dark' || stored === 'light' ? stored : DEFAULT_THEME;
+  }
+
+  function nextTheme(theme) {
+    return theme === 'dark' ? 'light' : 'dark';
+  }
+
+  /** localStorage, or null where the browser blocks it (reading the property can throw). */
+  function defaultStorage() {
+    try {
+      return root.localStorage || null;
+    } catch (err) {
+      return null;
+    }
+  }
+
   // ---------- App ----------
 
-  function initApp(document, fetchImpl) {
+  function initApp(document, fetchImpl, storage) {
     var api = createApi(fetchImpl);
+    var themeStorage = storage || defaultStorage();
 
     var els = {
       status: document.getElementById('status-line'),
+      themeToggle: document.getElementById('theme-toggle'),
       form: document.getElementById('range-form'),
       from: document.getElementById('range-from'),
       to: document.getElementById('range-to'),
@@ -130,6 +152,7 @@
       from: null,
       to: null,
       preset: DEFAULT_PRESET_DAYS,
+      theme: DEFAULT_THEME,
       kpis: null,
       onTime: [],
       late: [],
@@ -165,6 +188,32 @@
     function renderStatus() {
       var message = state.error || state.vendorsError;
       setStatus(message || '', Boolean(message));
+    }
+
+    function readStoredTheme() {
+      try {
+        return themeStorage ? themeStorage.getItem(THEME_KEY) : null;
+      } catch (err) {
+        return null;
+      }
+    }
+
+    /** Colours live in style.css; this only flips the attribute they hang off. */
+    function applyTheme(theme) {
+      state.theme = theme;
+      document.documentElement.setAttribute('data-theme', theme);
+      els.themeToggle.textContent = nextTheme(theme) === 'dark' ? 'Dark theme' : 'Light theme';
+    }
+
+    function setTheme(theme) {
+      applyTheme(theme);
+      try {
+        if (themeStorage) {
+          themeStorage.setItem(THEME_KEY, theme);
+        }
+      } catch (err) {
+        // The theme still applies for this visit; it just will not survive a refresh.
+      }
     }
 
     function setKpi(el, value) {
@@ -345,6 +394,12 @@
       });
     });
 
+    els.themeToggle.addEventListener('click', function () {
+      setTheme(nextTheme(state.theme));
+    });
+
+    applyTheme(resolveTheme(readStoredTheme()));
+
     var ready = api.health().then(function (health) {
       state.today = health.today;
       var range = applyPreset(DEFAULT_PRESET_DAYS, state.today);
@@ -359,6 +414,7 @@
       state: state,
       load: load,
       selectPreset: selectPreset,
+      setTheme: setTheme,
       api: api
     };
   }
@@ -372,7 +428,9 @@
     formatMoney: formatMoney,
     barWidths: barWidths,
     applyPreset: applyPreset,
-    daysUntil: daysUntil
+    daysUntil: daysUntil,
+    resolveTheme: resolveTheme,
+    nextTheme: nextTheme
   };
 
   if (typeof module !== 'undefined') {
